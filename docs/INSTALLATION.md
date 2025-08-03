@@ -5,10 +5,10 @@
 ### 🟦 Ubuntu/Debian
 ```bash
 # Descargar desde GitHub Releases
-wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard_*_amd64.deb
+wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard_1.0.0_amd64.deb
 
 # Instalar
-sudo dpkg -i appwireguard_*_amd64.deb
+sudo dpkg -i appwireguard_1.0.0_amd64.deb
 
 # Si faltan dependencias
 sudo apt-get install -f
@@ -17,10 +17,10 @@ sudo apt-get install -f
 ### 🔴 Fedora/RHEL/CentOS
 ```bash
 # Descargar desde GitHub Releases
-wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard-*-1.x86_64.rpm
+wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard-1.0.0-1.x86_64.rpm
 
 # Instalar
-sudo rpm -i appwireguard-*-1.x86_64.rpm
+sudo rpm -i appwireguard-1.0.0-1.x86_64.rpm
 ```
 
 ### 🔵 Arch Linux
@@ -35,11 +35,11 @@ aurman -S appwireguard
 ### 🟢 Universal (AppImage)
 ```bash
 # Descargar
-wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard_*_amd64.AppImage
+wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard_1.0.0_amd64.AppImage
 
 # Dar permisos y ejecutar
-chmod +x appwireguard_*_amd64.AppImage
-./appwireguard_*_amd64.AppImage
+chmod +x appwireguard_1.0.0_amd64.AppImage
+./appwireguard_1.0.0_amd64.AppImage
 ```
 
 ## Dependencias Requeridas

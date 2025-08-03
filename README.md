@@ -22,14 +22,14 @@
 
 ### Ubuntu/Debian
 ```bash
-wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard_*_amd64.deb
-sudo dpkg -i appwireguard_*_amd64.deb
+wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard_1.0.0_amd64.deb
+sudo dpkg -i appwireguard_1.0.0_amd64.deb
 ```
 
 ### Fedora/RHEL
 ```bash
-wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard-*-1.x86_64.rpm
-sudo rpm -i appwireguard-*-1.x86_64.rpm
+wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard-1.0.0-1.x86_64.rpm
+sudo rpm -i appwireguard-1.0.0-1.x86_64.rpm
 ```
 
 ### Arch Linux
