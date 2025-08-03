@@ -375,6 +375,11 @@ fn list_available_vpns() -> Result<Vec<String>, String> {
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         println!("🐛 DEBUG: Error con sudo ls: {}", stderr);
+        // Si el directorio no existe, devolver lista vacía en lugar de error
+        if stderr.contains("No such file or directory") {
+            println!("🐛 DEBUG: /etc/wireguard/ no existe, devolviendo lista vacía");
+            return Ok(vpn_names);
+        }
         return Err(format!("Error listando /etc/wireguard/: {}", stderr));
     }
     
@@ -383,6 +388,46 @@ fn list_available_vpns() -> Result<Vec<String>, String> {
     // Ordenar alfabéticamente
     vpn_names.sort();
     Ok(vpn_names)
+}
+
+#[command]
+fn detect_distro() -> String {
+    if let Ok(content) = std::fs::read_to_string("/etc/os-release") {
+        for line in content.lines() {
+            if line.starts_with("ID=") {
+                let distro = line.replace("ID=", "").replace("\"", "");
+                return distro;
+            }
+        }
+    }
+    "unknown".to_string()
+}
+
+#[command]
+fn install_wireguard() -> Result<String, String> {
+    let distro = detect_distro();
+    
+    let install_cmd = match distro.as_str() {
+        "ubuntu" | "debian" => vec!["apt", "update", "&&", "apt", "install", "-y", "wireguard"],
+        "fedora" => vec!["dnf", "install", "-y", "wireguard-tools"],
+        "arch" | "manjaro" => vec!["pacman", "-S", "--noconfirm", "wireguard-tools"],
+        "opensuse" | "opensuse-leap" | "opensuse-tumbleweed" => vec!["zypper", "install", "-y", "wireguard-tools"],
+        _ => return Err(format!("Distribución {} no soportada. Instala wireguard-tools manualmente.", distro))
+    };
+    
+    println!("🐛 DEBUG: Instalando WireGuard en {}: {:?}", distro, install_cmd);
+    
+    let output = Command::new("sudo")
+        .args(&install_cmd)
+        .output()
+        .map_err(|e| format!("Error ejecutando instalación: {}", e))?;
+    
+    if output.status.success() {
+        Ok(format!("✅ WireGuard instalado correctamente en {}", distro))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("❌ Error instalando WireGuard: {}", stderr))
+    }
 }
 
 #[command]
@@ -431,6 +476,8 @@ pub fn run() {
             check_vpn_status,
             find_active_vpn,
             list_available_vpns,
+            detect_distro,
+            install_wireguard,
             get_vpn_ip
         ])
         .run(tauri::generate_context!())
