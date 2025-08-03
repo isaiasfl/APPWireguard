@@ -63,8 +63,22 @@ jobs:
           node-version: "lts/*"
           cache: "npm"
 
+      - name: Clear npm cache
+        run: npm cache clean --force
+
       - name: Install frontend dependencies
-        run: npm ci
+        run: |
+          npm install
+          npm ls --depth=0
+
+      - name: Debug project structure
+        run: |
+          echo "=== Project structure ==="
+          ls -la src/
+          echo "=== Checking index.css ==="
+          ls -la src/index.css
+          echo "=== Node modules ==="
+          ls -la node_modules/ | head -20
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0.5
