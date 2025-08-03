@@ -6,9 +6,8 @@ pkgdesc="Aplicación multiplataforma para gestión de VPN WireGuard departamenta
 arch=('x86_64')
 url="https://github.com/isaiasfl/APPWireguard"
 license=('MIT')
-depends=('wireguard-tools' 'sudo')
-makedepends=('rust' 'npm' 'webkit2gtk' 'openssl' 'appmenu-gtk-module' 'gtk3' 'libappindicator-gtk3' 'librsvg')
-optdepends=('polkit: para autenticación gráfica')
+depends=('wireguard-tools' 'sudo' 'webkit2gtk' 'polkit')
+makedepends=('rust' 'npm' 'webkit2gtk' 'openssl' 'libayatana-appindicator' 'gtk3' 'librsvg' 'patchelf')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
 sha256sums=('SKIP')  # Actualizar con el hash real
 
@@ -28,7 +27,10 @@ package() {
     # Instalar binario
     install -Dm755 "src-tauri/target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
     
-    # Instalar desktop file
+    # Instalar archivos de polkit
+    install -Dm644 "99-appwireguard.rules" "$pkgdir/etc/polkit-1/rules.d/99-appwireguard.rules"
+    
+    # Instalar desktop file e icono
     install -Dm644 "src-tauri/icons/128x128.png" "$pkgdir/usr/share/pixmaps/$pkgname.png"
     
     # Crear archivo .desktop
