@@ -12,9 +12,18 @@
   "app": {
     "windows": [
       {
-        "title": "appwireguard",
+        "title": "APP WireGuard - Gestión VPN Departamental",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "minWidth": 600,
+        "minHeight": 400,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "skipTaskbar": false,
+        "theme": "Light"
       }
     ],
     "security": {
@@ -36,7 +45,7 @@
     "longDescription": "Aplicación multiplataforma para configurar automáticamente equipos con WireGuard y conectarse al servidor VPN del departamento.",
     "linux": {
       "deb": {
-        "depends": ["wireguard-tools", "sudo", "polkit-1"],
+        "depends": ["wireguard-tools", "sudo", "policykit-1"],
         "postInstallScript": "postinst"
       },
       "rpm": {

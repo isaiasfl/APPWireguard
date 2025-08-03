@@ -21,23 +21,32 @@
 ## 📦 Instalación Rápida
 
 ### Ubuntu/Debian
+
 ```bash
 wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard_1.0.1_amd64.deb
 sudo dpkg -i appwireguard_1.0.1_amd64.deb
 ```
 
 ### Fedora/RHEL
+
 ```bash
 wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard-1.0.1-1.x86_64.rpm
 sudo rpm -i appwireguard-1.0.1-1.x86_64.rpm
 ```
 
 ### Arch Linux
+
 ```bash
+# Instalador nativo (recomendado)
+wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/install.sh
+chmod +x install.sh && sudo ./install.sh
+
+# O desde AUR (cuando esté disponible)
 yay -S appwireguard
 ```
 
 ### Universal (AppImage)
+
 ```bash
 wget https://github.com/isaiasfl/APPWireguard/releases/latest/download/appwireguard_*_amd64.AppImage
 chmod +x appwireguard_*_amd64.AppImage && ./appwireguard_*_amd64.AppImage
@@ -48,7 +57,7 @@ chmod +x appwireguard_*_amd64.AppImage && ./appwireguard_*_amd64.AppImage
 ## 🚀 Uso Rápido
 
 1. **Instalar dependencias**: La app puede instalar WireGuard automáticamente
-2. **Configurar VPN**: 
+2. **Configurar VPN**:
    - Nombre de conexión (ej: `trabajo`)
    - Clave pública del servidor
    - Endpoint (IP:puerto)
@@ -56,25 +65,32 @@ chmod +x appwireguard_*_amd64.AppImage && ./appwireguard_*_amd64.AppImage
 
 📚 **[Ver guía detallada de uso](docs/USAGE.md)**
 
+🛠️ **[Guía de desarrollo y cambios en la interfaz](docs/DEVELOPMENT.md)**
+
 ## 🖼️ Capturas de Pantalla
 
 ### Pantalla Principal
+
 ![Pantalla Principal](docs/screenshots/main.png)
 
-### Configuración VPN  
+### Configuración VPN
+
 ![Configuración](docs/screenshots/config.png)
 
 ### Información del Sistema
+
 ![Sistema](docs/screenshots/system.png)
 
 ## 🛠️ Desarrollo
 
 ### Prerrequisitos
+
 - Node.js 18+
 - Rust 1.70+
 - wireguard-tools
 
 ### Configuración del entorno
+
 ```bash
 # Clonar repositorio
 git clone https://github.com/isaiasfl/APPWireguard.git
@@ -91,6 +107,7 @@ npm run tauri build
 ```
 
 ### Stack Tecnológico
+
 - **Frontend**: React 18 + Tailwind CSS 4
 - **Backend**: Rust + Tauri 2.x
 - **Empaquetado**: .deb, .rpm, .AppImage

@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=APP WireGuard
+Comment=Gestión profesional de VPN WireGuard departamental
+Comment[es]=Gestión profesional de VPN WireGuard departamental
+Comment[en]=Professional departmental WireGuard VPN management
+Exec=/usr/bin/appwireguard
+Icon=appwireguard
+Categories=Network;Security;System;
+Keywords=VPN;WireGuard;Network;Security;Tunneling;
+StartupNotify=true
+Terminal=false
+MimeType=application/x-wireguard-config;
+StartupWMClass=appwireguard

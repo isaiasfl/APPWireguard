@@ -58,3 +58,6 @@ pkg/
 *.backup
 *.bak
 *~
+
+# Temporary project copies
+src/APPWireguard-*/

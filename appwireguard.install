@@ -1,0 +1,50 @@
+post_install() {
+    echo "==> Configurando APP WireGuard..."
+    
+    # Actualizar cache de iconos
+    if command -v gtk-update-icon-cache > /dev/null 2>&1; then
+        gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+    fi
+    
+    # Actualizar base de datos de aplicaciones
+    if command -v update-desktop-database > /dev/null 2>&1; then
+        update-desktop-database -q /usr/share/applications || true
+    fi
+    
+    # Recargar reglas de polkit
+    if systemctl is-active polkit.service > /dev/null 2>&1; then
+        systemctl reload polkit.service || true
+    fi
+    
+    echo "==> APP WireGuard instalado correctamente"
+    echo "    Puede encontrar la aplicación en el menú de aplicaciones"
+    echo "    Categoría: Red > Seguridad"
+    echo ""
+    echo "==> Notas importantes:"
+    echo "    - La aplicación requiere privilegios administrativos"
+    echo "    - Asegúrese de tener WireGuard configurado en el sistema"
+    echo "    - Documentación disponible en /usr/share/doc/appwireguard/"
+}
+
+post_upgrade() {
+    post_install
+}
+
+pre_remove() {
+    echo "==> Desinstalando APP WireGuard..."
+}
+
+post_remove() {
+    # Limpiar cache de iconos
+    if command -v gtk-update-icon-cache > /dev/null 2>&1; then
+        gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+    fi
+    
+    # Actualizar base de datos de aplicaciones
+    if command -v update-desktop-database > /dev/null 2>&1; then
+        update-desktop-database -q /usr/share/applications || true
+    fi
+    
+    echo "==> APP WireGuard desinstalado"
+    echo "    Los archivos de configuración se mantienen en ~/.config/appwireguard/"
+}
