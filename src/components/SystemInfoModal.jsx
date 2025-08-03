@@ -7,6 +7,7 @@ import VPNConfigForm from "./VPNConfigForm.jsx";
 const SystemInfoModal = ({ onClose }) => {
   const [info, setInfo] = useState({});
   const [github, setGithub] = useState(null);
+  const [keys, setKeys] = useState({ privateKey: "", publicKey: "" });
   const [loading, setLoading] = useState(true);
   const [showConfig, setShowConfig] = useState(false);
 
@@ -14,7 +15,7 @@ const SystemInfoModal = ({ onClose }) => {
     const fetchInfo = async () => {
       try {
         setLoading(true);
-        const [username, hostname, ip, os, dns, githubInfo] = await Promise.all(
+        const [username, hostname, ip, os, dns, githubInfo, keysPair] = await Promise.all(
           [
             invoke("get_username"),
             invoke("get_hostname"),
@@ -22,11 +23,13 @@ const SystemInfoModal = ({ onClose }) => {
             invoke("get_os_info"),
             invoke("get_dns_servers"),
             invoke("get_github_info"),
+            invoke("generate_keys"),
           ]
         );
 
         setInfo({ username, hostname, ip, os, dns });
         setGithub(githubInfo);
+        setKeys({ privateKey: keysPair[0], publicKey: keysPair[1] });
       } catch (err) {
         console.error("Error obteniendo datos del sistema:", err);
       } finally {
@@ -86,6 +89,10 @@ const SystemInfoModal = ({ onClose }) => {
               </li>
               <li>
                 <strong>📡 DNS:</strong> {info.dns}
+              </li>
+              <li>
+                <strong>🔑 Clave pública WireGuard:</strong> 
+                <span className="font-mono text-xs break-all ml-1">{keys.publicKey}</span>
               </li>
             </ul>
           </>
