@@ -47,6 +47,24 @@ fn disconnect_vpn(vpn_name: Option<String>) -> Result<String, String> {
 }
 
 #[command]
+fn run_shell_command(command: String) -> Result<String, String> {
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(&command)
+        .output()
+        .map_err(|e| format!("Error al ejecutar comando: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if output.status.success() {
+        Ok(stdout)
+    } else {
+        Err(format!("Comando falló: {}", stderr))
+    }
+}
+
+#[command]
 fn read_wg_config(vpn_name: Option<String>) -> Result<String, String> {
     let interface_name = format!("wg0-{}", vpn_name.unwrap_or_else(|| "dpto".to_string()));
     let path = format!("/etc/wireguard/{}.conf", interface_name);
@@ -67,13 +85,13 @@ fn read_wg_config(vpn_name: Option<String>) -> Result<String, String> {
 }
 
 #[command]
-fn save_wg_config(content: String, vpn_name: Option<String>) -> Result<String, String> {
-    println!("🐛 DEBUG: save_wg_config llamado con contenido: {}", content);
+fn save_wg_config(vpn_name: String, config: String) -> Result<String, String> {
+    println!("🐛 DEBUG: save_wg_config llamado para VPN: {} con configuración: {}", vpn_name, config);
     
     // Comentar automáticamente la línea DNS para evitar errores
-    let modified_content = content.replace("DNS =", "#DNS =");
+    let modified_content = config.replace("DNS =", "#DNS =");
     
-    let interface_name = format!("wg0-{}", vpn_name.unwrap_or_else(|| "dpto".to_string()));
+    let interface_name = format!("wg0-{}", vpn_name);
     let target_file = format!("/etc/wireguard/{}.conf", interface_name);
     let debug_file = format!("/tmp/{}.conf", interface_name);
     let temp_file = format!("/tmp/{}-temp.conf", interface_name);
@@ -118,6 +136,37 @@ fn save_wg_config(content: String, vpn_name: Option<String>) -> Result<String, S
         Err(e) => {
             println!("🐛 DEBUG: Error escribiendo archivo temporal: {}", e);
             Err(format!("Error escribiendo archivo temporal: {}", e))
+        }
+    }
+}
+
+#[command]
+fn delete_wg_config(vpn_name: String) -> Result<String, String> {
+    let interface_name = format!("wg0-{}", vpn_name);
+    let target_file = format!("/etc/wireguard/{}.conf", interface_name);
+    
+    println!("🐛 DEBUG: Intentando eliminar archivo: {}", target_file);
+    
+    // Usar pkexec para eliminar el archivo
+    let output = Command::new("pkexec")
+        .arg("rm")
+        .arg(&target_file)
+        .output();
+    
+    match output {
+        Ok(result) => {
+            if result.status.success() {
+                println!("🐛 DEBUG: Archivo eliminado correctamente: {}", &target_file);
+                Ok(format!("Configuración {} eliminada correctamente", vpn_name))
+            } else {
+                let error = String::from_utf8_lossy(&result.stderr);
+                println!("🐛 DEBUG: Error eliminando archivo: {}", error);
+                Err(format!("Error eliminando configuración: {}", error))
+            }
+        }
+        Err(e) => {
+            println!("🐛 DEBUG: Error ejecutando comando de eliminación: {}", e);
+            Err(format!("Error ejecutando comando: {}", e))
         }
     }
 }
@@ -466,6 +515,60 @@ fn get_vpn_ip() -> String {
         .unwrap_or_else(|_| "Error".to_string())
 }
 
+// Alias y comandos adicionales que necesita la aplicación React
+#[command]
+fn generate_new_keys() -> Result<(String, String), String> {
+    generate_keys()
+}
+
+#[command]
+fn create_wg_config(vpn_name: String, config: String) -> Result<String, String> {
+    save_wg_config(vpn_name, config)
+}
+
+#[command]
+fn get_public_key_from_private(private_key: String) -> Result<String, String> {
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(&format!("echo '{}' | wg pubkey", private_key.trim()))
+        .output()
+        .map_err(|e| format!("Error ejecutando comando: {}", e))?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).to_string())
+    }
+}
+
+#[command]
+fn get_current_ip() -> Result<String, String> {
+    Ok(get_ip_address())
+}
+
+#[command]
+fn get_connection_time(vpn_name: String) -> Result<String, String> {
+    // Por ahora retornamos un tiempo simulado
+    // En el futuro se podría implementar un tracking real del tiempo de conexión
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(&format!("ps -eo pid,etime,cmd | grep 'wg-quick.*{}' | grep -v grep | head -1 | awk '{{print $2}}'", vpn_name))
+        .output()
+        .map_err(|e| format!("Error obteniendo tiempo de conexión: {}", e))?;
+
+    if output.status.success() {
+        let time_output = String::from_utf8_lossy(&output.stdout);
+        let time = time_output.trim();
+        if time.is_empty() {
+            Ok("00:00:00".to_string())
+        } else {
+            Ok(time.to_string())
+        }
+    } else {
+        Ok("00:00:00".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -473,10 +576,17 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             connect_vpn,
             disconnect_vpn,
+            run_shell_command,
             read_wg_config,
             save_wg_config,
+            delete_wg_config,
+            create_wg_config,
             check_wireguard_installed,
             generate_keys,
+            generate_new_keys,
+            get_public_key_from_private,
+            get_current_ip,
+            get_connection_time,
             get_username,
             get_hostname,
             get_ip_address,

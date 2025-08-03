@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "appwireguard",
+  "productName": "VPNinja",
   "version": "0.1.0",
   "identifier": "com.appwireguard.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "APP WireGuard - Gestión VPN Departamental",
+        "title": "VPNinja - Gestión Avanzada de VPN",
         "width": 800,
         "height": 600,
         "minWidth": 600,
