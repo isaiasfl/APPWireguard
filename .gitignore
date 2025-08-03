@@ -50,7 +50,7 @@ config/production.json
 
 # AUR build files  
 pkg/
-src/
+# src/ # Comentado porque no debe ignorar el código fuente
 *.pkg.tar.xz
 *.pkg.tar.zst
 
