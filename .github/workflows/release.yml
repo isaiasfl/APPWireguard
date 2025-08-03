@@ -73,10 +73,16 @@ jobs:
 
       - name: Debug project structure
         run: |
+          echo "=== Working directory ==="
+          pwd
           echo "=== Project structure ==="
           ls -la src/
           echo "=== Checking index.css ==="
           ls -la src/index.css
+          echo "=== Checking polkit rules ==="
+          ls -la 99-appwireguard.rules
+          echo "=== From src-tauri perspective ==="
+          cd src-tauri && ls -la ../99-appwireguard.rules
           echo "=== Node modules ==="
           ls -la node_modules/ | head -20
 

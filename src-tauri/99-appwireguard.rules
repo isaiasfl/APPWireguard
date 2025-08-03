@@ -1,0 +1,18 @@
+// PolicyKit rules for APPWireguard
+// This allows users in the 'wheel' group to run WireGuard commands without password
+
+polkit.addRule(function(action, subject) {
+    if ((action.id == "org.freedesktop.policykit.exec" &&
+         action.lookup("program").indexOf("wg-quick") == 0) ||
+        (action.id == "org.freedesktop.policykit.exec" &&
+         action.lookup("program").indexOf("wg") == 0) ||
+        (action.id == "org.freedesktop.policykit.exec" &&
+         action.lookup("command_line").indexOf("wg-quick") >= 0) ||
+        (action.id == "org.freedesktop.policykit.exec" &&
+         action.lookup("command_line").indexOf("/etc/wireguard") >= 0)) {
+        
+        if (subject.isInGroup("wheel") || subject.isInGroup("sudo")) {
+            return polkit.Result.YES;
+        }
+    }
+});

@@ -23,7 +23,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["deb", "rpm", "appimage"],
+    "targets": ["deb", "rpm"],
     "publisher": "isaiasfl",
     "icon": [
       "icons/32x32.png",
@@ -37,17 +37,11 @@
     "linux": {
       "deb": {
         "depends": ["wireguard-tools", "sudo", "polkit-1"],
-        "files": {
-          "../99-appwireguard.rules": "/etc/polkit-1/rules.d/99-appwireguard.rules"
-        },
-        "postInstallScript": "../postinst"
+        "postInstallScript": "postinst"
       },
       "rpm": {
         "depends": ["wireguard-tools", "sudo", "polkit"],
-        "files": {
-          "../99-appwireguard.rules": "/etc/polkit-1/rules.d/99-appwireguard.rules"
-        },
-        "postInstallScript": "../postinst"
+        "postInstallScript": "postinst"
       }
     }
   }

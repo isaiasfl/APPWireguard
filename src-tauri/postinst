@@ -1,0 +1,42 @@
+#!/bin/bash
+# Post-installation script for APPWireguard
+
+# Create directory if it doesn't exist
+mkdir -p /etc/polkit-1/rules.d/
+
+# Copy polkit rules (they should be bundled with the app)
+# Since Tauri has issues with files config, we'll embed the rules directly
+cat > /etc/polkit-1/rules.d/99-appwireguard.rules << 'EOF'
+// PolicyKit rules for APPWireguard
+// This allows users in the 'wheel' group to run WireGuard commands without password
+
+polkit.addRule(function(action, subject) {
+    if ((action.id == "org.freedesktop.policykit.exec" &&
+         action.lookup("program").indexOf("wg-quick") == 0) ||
+        (action.id == "org.freedesktop.policykit.exec" &&
+         action.lookup("program").indexOf("wg") == 0) ||
+        (action.id == "org.freedesktop.policykit.exec" &&
+         action.lookup("command_line").indexOf("wg-quick") >= 0) ||
+        (action.id == "org.freedesktop.policykit.exec" &&
+         action.lookup("command_line").indexOf("/etc/wireguard") >= 0)) {
+        
+        if (subject.isInGroup("wheel") || subject.isInGroup("sudo")) {
+            return polkit.Result.YES;
+        }
+    }
+});
+EOF
+
+# Restart PolicyKit to load new rules
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl restart polkit 2>/dev/null || true
+fi
+
+# Add user to wheel group if not already (for PolicyKit rules)
+if ! groups "$SUDO_USER" | grep -q '\bwheel\b' 2>/dev/null; then
+    if command -v usermod >/dev/null 2>&1 && [ -n "$SUDO_USER" ]; then
+        usermod -a -G wheel "$SUDO_USER" 2>/dev/null || true
+    fi
+fi
+
+exit 0
