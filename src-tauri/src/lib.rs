@@ -13,11 +13,12 @@ struct GithubProfile {
 }
 
 #[command]
-fn connect_vpn() -> Result<String, String> {
+fn connect_vpn(vpn_name: Option<String>) -> Result<String, String> {
+    let interface_name = format!("wg0-{}", vpn_name.unwrap_or_else(|| "dpto".to_string()));
     let output = Command::new("sudo")
         .arg("wg-quick")
         .arg("up")
-        .arg("wg0-dpto")
+        .arg(&interface_name)
         .output()
         .map_err(|e| format!("Error al ejecutar: {}", e))?;
 
@@ -29,11 +30,12 @@ fn connect_vpn() -> Result<String, String> {
 }
 
 #[command]
-fn disconnect_vpn() -> Result<String, String> {
+fn disconnect_vpn(vpn_name: Option<String>) -> Result<String, String> {
+    let interface_name = format!("wg0-{}", vpn_name.unwrap_or_else(|| "dpto".to_string()));
     let output = Command::new("sudo")
         .arg("wg-quick")
         .arg("down")
-        .arg("wg0-dpto")
+        .arg(&interface_name)
         .output()
         .map_err(|e| format!("Error al ejecutar: {}", e))?;
 
@@ -45,17 +47,18 @@ fn disconnect_vpn() -> Result<String, String> {
 }
 
 #[command]
-fn read_wg_config() -> Result<String, String> {
-    let path = "/etc/wireguard/wg0-dpto.conf";
-    let debug_path = "/tmp/wg0-dpto.conf";
+fn read_wg_config(vpn_name: Option<String>) -> Result<String, String> {
+    let interface_name = format!("wg0-{}", vpn_name.unwrap_or_else(|| "dpto".to_string()));
+    let path = format!("/etc/wireguard/{}.conf", interface_name);
+    let debug_path = format!("/tmp/{}.conf", interface_name);
     
     // Primero intentar leer el archivo real
-    if let Ok(content) = fs::read_to_string(path) {
+    if let Ok(content) = fs::read_to_string(&path) {
         return Ok(content);
     }
     
     // Si no existe, intentar el archivo debug
-    if let Ok(content) = fs::read_to_string(debug_path) {
+    if let Ok(content) = fs::read_to_string(&debug_path) {
         return Ok(content);
     }
     
@@ -64,50 +67,51 @@ fn read_wg_config() -> Result<String, String> {
 }
 
 #[command]
-fn save_wg_config(content: String) -> Result<String, String> {
+fn save_wg_config(content: String, vpn_name: Option<String>) -> Result<String, String> {
     println!("🐛 DEBUG: save_wg_config llamado con contenido: {}", content);
     
     // Comentar automáticamente la línea DNS para evitar errores
     let modified_content = content.replace("DNS =", "#DNS =");
     
-    let target_file = "/etc/wireguard/wg0-dpto.conf";
-    let debug_file = "/tmp/wg0-dpto.conf";
-    let temp_file = "/tmp/wg0-dpto-temp.conf";
+    let interface_name = format!("wg0-{}", vpn_name.unwrap_or_else(|| "dpto".to_string()));
+    let target_file = format!("/etc/wireguard/{}.conf", interface_name);
+    let debug_file = format!("/tmp/{}.conf", interface_name);
+    let temp_file = format!("/tmp/{}-temp.conf", interface_name);
     
     // Primero escribir al archivo debug como backup
-    let _ = fs::write(debug_file, &modified_content);
+    let _ = fs::write(&debug_file, &modified_content);
     
     // Escribir a archivo temporal
-    match fs::write(temp_file, &modified_content) {
+    match fs::write(&temp_file, &modified_content) {
         Ok(_) => {
             println!("🐛 DEBUG: Archivo temporal escrito");
             
             // Usar sudo para mover el archivo
             let output = Command::new("sudo")
                 .arg("cp")
-                .arg(temp_file)
-                .arg(target_file)
+                .arg(&temp_file)
+                .arg(&target_file)
                 .output();
             
             // Limpiar archivo temporal
-            let _ = fs::remove_file(temp_file);
+            let _ = fs::remove_file(&temp_file);
             
             match output {
                 Ok(result) => {
                     if result.status.success() {
-                        println!("🐛 DEBUG: Archivo copiado correctamente a {}", target_file);
-                        Ok(format!("✅ Configuración guardada en {}", target_file))
+                        println!("🐛 DEBUG: Archivo copiado correctamente a {}", &target_file);
+                        Ok(format!("✅ Configuración guardada en {}", &target_file))
                     } else {
                         let error = String::from_utf8_lossy(&result.stderr);
                         println!("🐛 DEBUG: Error con sudo: {}", error);
                         // Si falla, al menos tenemos el archivo en /tmp
-                        Ok(format!("⚠️ Configuración guardada en {} (no se pudo escribir en {})", debug_file, target_file))
+                        Ok(format!("⚠️ Configuración guardada en {} (no se pudo escribir en {})", &debug_file, &target_file))
                     }
                 },
                 Err(e) => {
                     println!("🐛 DEBUG: Error ejecutando sudo: {}", e);
                     // Si falla, al menos tenemos el archivo en /tmp
-                    Ok(format!("⚠️ Configuración guardada en {} (no se pudo ejecutar sudo)", debug_file))
+                    Ok(format!("⚠️ Configuración guardada en {} (no se pudo ejecutar sudo)", &debug_file))
                 }
             }
         },
@@ -253,7 +257,7 @@ async fn get_github_info() -> Result<GithubProfile, String> {
 
 #[command]
 fn check_config_complete() -> Result<bool, String> {
-    let config = read_wg_config()?;
+    let config = read_wg_config(None)?;
     
     if config.trim().is_empty() {
         return Ok(false);
@@ -283,22 +287,102 @@ fn check_config_complete() -> Result<bool, String> {
 }
 
 #[command]
-fn check_vpn_status() -> Result<bool, String> {
-    // Verificar si la interfaz wg0-dpto existe y está UP
+fn check_vpn_status(vpn_name: Option<String>) -> Result<bool, String> {
+    let interface_name = format!("wg0-{}", vpn_name.unwrap_or_else(|| "dpto".to_string()));
+    
+    // Método 1: Verificar con ip addr
     let output = Command::new("ip")
-        .arg("link")
+        .arg("addr")
         .arg("show")
-        .arg("wg0-dpto")
+        .arg(&interface_name)
         .output()
-        .map_err(|e| format!("Error al ejecutar ip link show: {}", e))?;
+        .map_err(|e| format!("Error al ejecutar ip addr: {}", e))?;
 
-    if !output.status.success() {
-        return Ok(false);
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        // Si hay contenido y contiene "inet", la interfaz está UP con IP
+        return Ok(!stdout.is_empty() && stdout.contains("inet"));
     }
 
-    // Verificar que la interfaz esté UP (no solo que exista)
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    Ok(stdout.contains("state UP"))
+    // Método 2: Fallback con wg show
+    let wg_output = Command::new("wg")
+        .arg("show")
+        .arg(&interface_name)
+        .output();
+        
+    if let Ok(wg_result) = wg_output {
+        return Ok(wg_result.status.success() && !wg_result.stdout.is_empty());
+    }
+
+    Ok(false)
+}
+
+#[command]
+fn find_active_vpn() -> Result<Option<String>, String> {
+    // Buscar cualquier interfaz wg0-* activa
+    let output = Command::new("wg")
+        .arg("show")
+        .output()
+        .map_err(|e| format!("Error al ejecutar wg show: {}", e))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        
+        // Buscar líneas que empiecen con "interface: wg0-"
+        for line in stdout.lines() {
+            if line.starts_with("interface: wg0-") {
+                // Extraer el nombre (ej: "interface: wg0-dpto" -> "dpto")
+                if let Some(full_interface) = line.strip_prefix("interface: ") {
+                    if let Some(name_part) = full_interface.strip_prefix("wg0-") {
+                        return Ok(Some(name_part.to_string()));
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+#[command]
+fn list_available_vpns() -> Result<Vec<String>, String> {
+    let mut vpn_names = Vec::new();
+    
+    // Usar sudo ls para listar archivos en /etc/wireguard/
+    let output = Command::new("sudo")
+        .arg("ls")
+        .arg("/etc/wireguard/")
+        .output()
+        .map_err(|e| format!("Error ejecutando sudo ls: {}", e))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        println!("🐛 DEBUG: Archivos en /etc/wireguard/: {}", stdout);
+        
+        for line in stdout.lines() {
+            let file_name = line.trim();
+            if file_name.starts_with("wg0-") && file_name.ends_with(".conf") {
+                // Extraer el nombre (ej: "wg0-dpto.conf" -> "dpto")
+                let name = file_name
+                    .strip_prefix("wg0-")
+                    .unwrap()
+                    .strip_suffix(".conf")
+                    .unwrap();
+                println!("🐛 DEBUG: VPN encontrada: {}", name);
+                vpn_names.push(name.to_string());
+            }
+        }
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        println!("🐛 DEBUG: Error con sudo ls: {}", stderr);
+        return Err(format!("Error listando /etc/wireguard/: {}", stderr));
+    }
+    
+    println!("🐛 DEBUG: VPNs totales encontradas: {:?}", vpn_names);
+    
+    // Ordenar alfabéticamente
+    vpn_names.sort();
+    Ok(vpn_names)
 }
 
 #[command]
@@ -345,6 +429,8 @@ pub fn run() {
             get_github_info,
             check_config_complete,
             check_vpn_status,
+            find_active_vpn,
+            list_available_vpns,
             get_vpn_ip
         ])
         .run(tauri::generate_context!())

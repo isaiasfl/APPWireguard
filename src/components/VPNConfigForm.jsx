@@ -11,6 +11,9 @@ const VPNConfigForm = ({ onClose, onConfigSaved }) => {
     publicKey: "",
     address: "10.0.0.2/24"
   });
+
+  // Nombre de la conexión VPN
+  const [vpnName, setVpnName] = useState("");
   
   // Configuración del servidor (debe rellenar el usuario)
   const [serverConfig, setServerConfig] = useState({
@@ -33,12 +36,25 @@ const VPNConfigForm = ({ onClose, onConfigSaved }) => {
           return;
         }
 
-        // Intentar cargar configuración existente
-        const existingConfig = await invoke("read_wg_config");
-        if (existingConfig.trim() !== "") {
-          await parseExistingConfig(existingConfig);
-        } else {
-          // Generar nuevas claves
+        // Buscar VPNs disponibles
+        const availableVpns = await invoke("list_available_vpns");
+        let configLoaded = false;
+        
+        if (availableVpns.length > 0) {
+          // Si hay VPNs disponibles, cargar la primera (o la activa si hay)
+          const activeVpn = await invoke("find_active_vpn");
+          const vpnToLoad = activeVpn || availableVpns[0];
+          
+          setVpnName(vpnToLoad);
+          const existingConfig = await invoke("read_wg_config", { vpnName: vpnToLoad });
+          if (existingConfig.trim() !== "") {
+            await parseExistingConfig(existingConfig);
+            configLoaded = true;
+          }
+        }
+        
+        if (!configLoaded) {
+          // Generar nuevas claves para nueva configuración
           const [privateKey, publicKey] = await invoke("generate_keys");
           setClientData(prev => ({
             ...prev,
@@ -123,6 +139,10 @@ PersistentKeepalive = ${serverConfig.keepalive}`;
       setMessage("🔄 Guardando configuración...");
       
       // Validar que los campos obligatorios estén completos
+      if (!vpnName.trim()) {
+        setMessage("❌ Debes poner un nombre a la conexión");
+        return;
+      }
       if (!serverConfig.publicKey || !serverConfig.endpoint) {
         setMessage("❌ Debes completar la configuración del servidor (Clave Pública y Endpoint)");
         return;
@@ -132,7 +152,7 @@ PersistentKeepalive = ${serverConfig.keepalive}`;
       console.log("🐛 DEBUG: Configuración a guardar:", config);
       console.log("🐛 DEBUG: Llamando a save_wg_config...");
       
-      const result = await invoke("save_wg_config", { content: config });
+      const result = await invoke("save_wg_config", { content: config, vpnName: vpnName.trim() });
       console.log("🐛 DEBUG: Resultado:", result);
       
       setMessage(`✅ ${result}`);
@@ -176,6 +196,23 @@ PersistentKeepalive = ${serverConfig.keepalive}`;
       <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
         Configuración de WireGuard
       </h2>
+
+      {/* NOMBRE DE LA CONEXIÓN */}
+      <div className="mb-6 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-300 mb-3">
+          📛 NOMBRE DE LA CONEXIÓN *
+        </h3>
+        <input
+          type="text"
+          value={vpnName}
+          onChange={(e) => setVpnName(e.target.value)}
+          className="w-full p-3 bg-white dark:bg-gray-800 border border-purple-300 dark:border-purple-600 rounded text-gray-900 dark:text-white"
+          placeholder="Ejemplo: casa, trabajo, dpto, oficina..."
+        />
+        <p className="text-sm text-purple-600 dark:text-purple-400 mt-2">
+          Se creará el archivo: <code>/etc/wireguard/wg0-{vpnName || "NOMBRE"}.conf</code>
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* SECCIÓN 1: DATOS DE TU EQUIPO */}
@@ -342,7 +379,7 @@ PersistentKeepalive = ${serverConfig.keepalive}`;
         <button
           onClick={save}
           className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={!serverConfig.publicKey || !serverConfig.endpoint}
+          disabled={!vpnName.trim() || !serverConfig.publicKey || !serverConfig.endpoint}
         >
           💾 Guardar configuración
         </button>
