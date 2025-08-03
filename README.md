@@ -1,11 +1,11 @@
-# 🔐 APP WireGuard - Gestión de VPN Departamental
+# 🔐 APP WireGuard - Gestión de VPN
 
 [![Release](https://img.shields.io/github/v/release/isaiasfl/APPWireguard)](https://github.com/isaiasfl/APPWireguard/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-Linux-blue)](https://github.com/isaiasfl/APPWireguard)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri-24C8DB)](https://tauri.app/)
 
-> 🚀 **Aplicación multiplataforma para configurar automáticamente equipos con WireGuard y conectarse al servidor VPN del departamento.**
+> 🚀 **Aplicación multiplataforma para configurar automáticamente equipos con WireGuard y conectarse al servidor VPN.**
 
 ## ✨ Características
 
