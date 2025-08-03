@@ -15,19 +15,20 @@ const SystemInfoModal = ({ onClose }) => {
     const fetchInfo = async () => {
       try {
         setLoading(true);
-        const [username, hostname, ip, os, dns, githubInfo, keysPair] = await Promise.all(
+        const [username, hostname, ip, os, dns, vpnIp, githubInfo, keysPair] = await Promise.all(
           [
             invoke("get_username"),
             invoke("get_hostname"),
             invoke("get_ip_address"),
             invoke("get_os_info"),
             invoke("get_dns_servers"),
+            invoke("get_vpn_ip"),
             invoke("get_github_info"),
             invoke("generate_keys"),
           ]
         );
 
-        setInfo({ username, hostname, ip, os, dns });
+        setInfo({ username, hostname, ip, os, dns, vpnIp });
         setGithub(githubInfo);
         setKeys({ privateKey: keysPair[0], publicKey: keysPair[1] });
       } catch (err) {
@@ -83,6 +84,9 @@ const SystemInfoModal = ({ onClose }) => {
               </li>
               <li>
                 <strong>🌐 IP local:</strong> {info.ip}
+              </li>
+              <li>
+                <strong>🔒 IP VPN:</strong> {info.vpnIp}
               </li>
               <li>
                 <strong>🧠 Sistema:</strong> {info.os}

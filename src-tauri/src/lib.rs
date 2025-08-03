@@ -14,7 +14,7 @@ struct GithubProfile {
 
 #[command]
 fn connect_vpn() -> Result<String, String> {
-    let output = Command::new("pkexec")
+    let output = Command::new("sudo")
         .arg("wg-quick")
         .arg("up")
         .arg("wg0-dpto")
@@ -30,7 +30,7 @@ fn connect_vpn() -> Result<String, String> {
 
 #[command]
 fn disconnect_vpn() -> Result<String, String> {
-    let output = Command::new("pkexec")
+    let output = Command::new("sudo")
         .arg("wg-quick")
         .arg("down")
         .arg("wg0-dpto")
@@ -83,7 +83,7 @@ fn save_wg_config(content: String) -> Result<String, String> {
             println!("🐛 DEBUG: Archivo temporal escrito");
             
             // Usar sudo para mover el archivo
-            let output = Command::new("pkexec")
+            let output = Command::new("sudo")
                 .arg("cp")
                 .arg(temp_file)
                 .arg(target_file)
@@ -99,15 +99,15 @@ fn save_wg_config(content: String) -> Result<String, String> {
                         Ok(format!("✅ Configuración guardada en {}", target_file))
                     } else {
                         let error = String::from_utf8_lossy(&result.stderr);
-                        println!("🐛 DEBUG: Error con pkexec: {}", error);
+                        println!("🐛 DEBUG: Error con sudo: {}", error);
                         // Si falla, al menos tenemos el archivo en /tmp
                         Ok(format!("⚠️ Configuración guardada en {} (no se pudo escribir en {})", debug_file, target_file))
                     }
                 },
                 Err(e) => {
-                    println!("🐛 DEBUG: Error ejecutando pkexec: {}", e);
+                    println!("🐛 DEBUG: Error ejecutando sudo: {}", e);
                     // Si falla, al menos tenemos el archivo en /tmp
-                    Ok(format!("⚠️ Configuración guardada en {} (no se pudo ejecutar pkexec)", debug_file))
+                    Ok(format!("⚠️ Configuración guardada en {} (no se pudo ejecutar sudo)", debug_file))
                 }
             }
         },
@@ -284,14 +284,46 @@ fn check_config_complete() -> Result<bool, String> {
 
 #[command]
 fn check_vpn_status() -> Result<bool, String> {
-    let output = Command::new("wg")
+    // Verificar si la interfaz wg0-dpto existe y está UP
+    let output = Command::new("ip")
+        .arg("link")
         .arg("show")
         .arg("wg0-dpto")
         .output()
-        .map_err(|e| format!("Error al ejecutar wg show: {}", e))?;
+        .map_err(|e| format!("Error al ejecutar ip link show: {}", e))?;
 
-    // Si el comando tiene éxito y hay salida, la interfaz está activa
-    Ok(output.status.success() && !output.stdout.is_empty())
+    if !output.status.success() {
+        return Ok(false);
+    }
+
+    // Verificar que la interfaz esté UP (no solo que exista)
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    Ok(stdout.contains("state UP"))
+}
+
+#[command]
+fn get_vpn_ip() -> String {
+    Command::new("ip")
+        .arg("addr")
+        .arg("show")
+        .arg("wg0-dpto")
+        .output()
+        .map(|output| {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                // Buscar línea con "inet"
+                for line in stdout.lines() {
+                    if line.trim().starts_with("inet ") && !line.contains("127.0.0.1") {
+                        // Extraer la IP (formato: "inet 192.168.100.105/32 scope global wg0-dpto")
+                        if let Some(ip_part) = line.trim().split_whitespace().nth(1) {
+                            return ip_part.split('/').next().unwrap_or("N/A").to_string();
+                        }
+                    }
+                }
+            }
+            "No conectado".to_string()
+        })
+        .unwrap_or_else(|_| "Error".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -312,7 +344,8 @@ pub fn run() {
             get_dns_servers,
             get_github_info,
             check_config_complete,
-            check_vpn_status
+            check_vpn_status,
+            get_vpn_ip
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

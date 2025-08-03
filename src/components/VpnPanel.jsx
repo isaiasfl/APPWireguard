@@ -29,11 +29,13 @@ const VpnPanel = ({ onConfigClick, key }) => {
       const isConnected = await invoke("check_vpn_status");
       setConnected(isConnected);
       if (isConnected) {
-        setStatusMessage("VPN ya está conectada ✅");
+        setStatusMessage("✅ Conectado a wg0-dpto");
+      } else {
+        setStatusMessage("❌ No conectado a wg0-dpto");
       }
     } catch (error) {
       console.error("Error verificando estado VPN:", error);
-      setConnected(false);
+      setStatusMessage("❌ Error verificando estado");
     }
   };
 
@@ -104,15 +106,6 @@ const VpnPanel = ({ onConfigClick, key }) => {
         </p>
       )}
 
-      <button
-        onClick={() => {
-          checkConfigStatus();
-          checkVpnStatus();
-        }}
-        className="mt-4 px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white text-sm rounded"
-      >
-        🔄 Verificar estado
-      </button>
     </section>
   );
 };
