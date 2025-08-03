@@ -23,13 +23,32 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["deb", "rpm"],
+    "targets": ["deb", "rpm", "appimage"],
+    "publisher": "isaiasfl",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "shortDescription": "Gestión de VPN WireGuard departamental",
+    "longDescription": "Aplicación multiplataforma para configurar automáticamente equipos con WireGuard y conectarse al servidor VPN del departamento.",
+    "linux": {
+      "deb": {
+        "depends": ["wireguard-tools", "sudo", "polkit-1"],
+        "files": {
+          "../99-appwireguard.rules": "/etc/polkit-1/rules.d/99-appwireguard.rules"
+        },
+        "postInstallScript": "../postinst"
+      },
+      "rpm": {
+        "depends": ["wireguard-tools", "sudo", "polkit"],
+        "files": {
+          "../99-appwireguard.rules": "/etc/polkit-1/rules.d/99-appwireguard.rules"
+        },
+        "postInstallScript": "../postinst"
+      }
+    }
   }
 }

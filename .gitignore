@@ -22,3 +22,39 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tauri build artifacts
+src-tauri/target
+
+# Rust
+Cargo.lock
+*.pdb
+
+# macOS
+.DS_Store
+
+# Archivos temporales de WireGuard
+*.conf.tmp
+*.key.tmp
+
+# Archivos de configuración sensibles
+config/production.json
+.env.local
+.env.production
+
+# Build artifacts
+*.deb
+*.rpm
+*.AppImage
+*.tar.gz
+
+# AUR build files  
+pkg/
+src/
+*.pkg.tar.xz
+*.pkg.tar.zst
+
+# Backups
+*.backup
+*.bak
+*~

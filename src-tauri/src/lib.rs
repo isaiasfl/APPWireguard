@@ -15,7 +15,7 @@ struct GithubProfile {
 #[command]
 fn connect_vpn(vpn_name: Option<String>) -> Result<String, String> {
     let interface_name = format!("wg0-{}", vpn_name.unwrap_or_else(|| "dpto".to_string()));
-    let output = Command::new("sudo")
+    let output = Command::new("pkexec")
         .arg("wg-quick")
         .arg("up")
         .arg(&interface_name)
@@ -32,7 +32,7 @@ fn connect_vpn(vpn_name: Option<String>) -> Result<String, String> {
 #[command]
 fn disconnect_vpn(vpn_name: Option<String>) -> Result<String, String> {
     let interface_name = format!("wg0-{}", vpn_name.unwrap_or_else(|| "dpto".to_string()));
-    let output = Command::new("sudo")
+    let output = Command::new("pkexec")
         .arg("wg-quick")
         .arg("down")
         .arg(&interface_name)
@@ -86,8 +86,8 @@ fn save_wg_config(content: String, vpn_name: Option<String>) -> Result<String, S
         Ok(_) => {
             println!("🐛 DEBUG: Archivo temporal escrito");
             
-            // Usar sudo para mover el archivo
-            let output = Command::new("sudo")
+            // Usar pkexec para mover el archivo
+            let output = Command::new("pkexec")
                 .arg("cp")
                 .arg(&temp_file)
                 .arg(&target_file)
@@ -348,46 +348,57 @@ fn find_active_vpn() -> Result<Option<String>, String> {
 fn list_available_vpns() -> Result<Vec<String>, String> {
     let mut vpn_names = Vec::new();
     
-    // Usar sudo ls para listar archivos en /etc/wireguard/
-    let output = Command::new("sudo")
-        .arg("ls")
-        .arg("/etc/wireguard/")
-        .output()
-        .map_err(|e| format!("Error ejecutando sudo ls: {}", e))?;
-
-    if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        println!("🐛 DEBUG: Archivos en /etc/wireguard/: {}", stdout);
-        
-        for line in stdout.lines() {
-            let file_name = line.trim();
-            if file_name.starts_with("wg0-") && file_name.ends_with(".conf") {
-                // Extraer el nombre (ej: "wg0-dpto.conf" -> "dpto")
-                let name = file_name
-                    .strip_prefix("wg0-")
-                    .unwrap()
-                    .strip_suffix(".conf")
-                    .unwrap();
-                println!("🐛 DEBUG: VPN encontrada: {}", name);
-                vpn_names.push(name.to_string());
+    // Intentar leer el directorio directamente usando std::fs
+    match std::fs::read_dir("/etc/wireguard/") {
+        Ok(entries) => {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let file_name = entry.file_name().to_string_lossy().to_string();
+                    if file_name.starts_with("wg0-") && file_name.ends_with(".conf") {
+                        // Extraer el nombre (ej: "wg0-dpto.conf" -> "dpto")
+                        let name = file_name
+                            .strip_prefix("wg0-")
+                            .unwrap()
+                            .strip_suffix(".conf")
+                            .unwrap();
+                        println!("🐛 DEBUG: VPN encontrada: {}", name);
+                        vpn_names.push(name.to_string());
+                    }
+                }
             }
-        }
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        println!("🐛 DEBUG: Error con sudo ls: {}", stderr);
-        // Si el directorio no existe, devolver lista vacía en lugar de error
-        if stderr.contains("No such file or directory") {
-            println!("🐛 DEBUG: /etc/wireguard/ no existe, devolviendo lista vacía");
             return Ok(vpn_names);
         }
-        return Err(format!("Error listando /etc/wireguard/: {}", stderr));
+        Err(_) => {
+            // Si no podemos leer directamente, usar pkexec ls
+            let output = Command::new("pkexec")
+                .arg("ls")
+                .arg("/etc/wireguard/")
+                .output()
+                .map_err(|e| format!("Error ejecutando ls: {}", e))?;
+            
+            if !output.status.success() {
+                return Ok(vpn_names); // Devolver lista vacía si no hay acceso
+            }
+            
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            println!("🐛 DEBUG: Archivos en /etc/wireguard/: {}", stdout);
+            
+            for line in stdout.lines() {
+                let file_name = line.trim();
+                if file_name.starts_with("wg0-") && file_name.ends_with(".conf") {
+                    // Extraer el nombre (ej: "wg0-dpto.conf" -> "dpto")
+                    let name = file_name
+                        .strip_prefix("wg0-")
+                        .unwrap()
+                        .strip_suffix(".conf")
+                        .unwrap();
+                    println!("🐛 DEBUG: VPN encontrada: {}", name);
+                    vpn_names.push(name.to_string());
+                }
+            }
+            return Ok(vpn_names);
+        }
     }
-    
-    println!("🐛 DEBUG: VPNs totales encontradas: {:?}", vpn_names);
-    
-    // Ordenar alfabéticamente
-    vpn_names.sort();
-    Ok(vpn_names)
 }
 
 #[command]
@@ -417,7 +428,7 @@ fn install_wireguard() -> Result<String, String> {
     
     println!("🐛 DEBUG: Instalando WireGuard en {}: {:?}", distro, install_cmd);
     
-    let output = Command::new("sudo")
+    let output = Command::new("pkexec")
         .args(&install_cmd)
         .output()
         .map_err(|e| format!("Error ejecutando instalación: {}", e))?;
