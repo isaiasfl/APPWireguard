@@ -7,7 +7,7 @@ arch=('x86_64')
 url="https://github.com/isaiasfl/APPWireguard"
 license=('MIT')
 depends=('wireguard-tools' 'sudo' 'webkit2gtk' 'polkit')
-makedepends=('rust' 'npm' 'webkit2gtk' 'openssl' 'libayatana-appindicator' 'gtk3' 'librsvg' 'patchelf')
+makedepends=('rust' 'npm' 'webkit2gtk' 'openssl' 'libayatana-appindicator' 'gtk3' 'librsvg' 'patchelf' 'clang' 'nasm' 'gcc' 'llvm')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
 sha256sums=('SKIP')  # Actualizar con el hash real
 
@@ -18,6 +18,12 @@ prepare() {
 
 build() {
     cd "$srcdir/APPWireguard-$pkgver"
+    
+    # Variables de entorno para Ring
+    export CC=gcc
+    export CXX=g++
+    export RING_BUILD_VERBOSE=1
+    
     npm run tauri build
 }
 
